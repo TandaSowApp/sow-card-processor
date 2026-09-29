@@ -4,21 +4,25 @@ import streamlit as st
 
 
 # ==========================================
-# 1. YOUR PROCESSING LOGIC
+# 1. YOUR PROCESSING LOGIC WITH DUPLEX GENERATION
 # ==========================================
 def process_sow_cards_bytes(pdf_bytes):
-  doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+  input_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+  output_doc = fitz.open()  # New document for interleaved front/back pages
   updated_count = 0
 
-  for page_num in range(len(doc)):
-    page = doc[page_num]
+  for page_num in range(len(input_doc)):
+    page = input_doc[page_num]
     page_rect = page.rect
     mid_y = page_rect.height / 2
 
     top_zone = fitz.Rect(0, 0, page_rect.width, mid_y)
     bottom_zone = fitz.Rect(0, mid_y, page_rect.width, page_rect.height)
 
-    # --- PROCESS TOP CARD ---
+    top_info = None
+    bottom_info = None
+
+    # --- PROCESS TOP CARD (FRONT) ---
     top_text = page.get_text("text", clip=top_zone)
     if "ROYAL CRESCENT" in top_text or "Parity" in top_text:
       (
@@ -28,14 +32,15 @@ def process_sow_cards_bytes(pdf_bytes):
           breed_rects,
           max_parity,
           induce_date_str,
+          sow_id,
       ) = evaluate_sow_card(page, top_zone, top_text)
 
       card_updated = False
+      top_info = {"sow_id": sow_id, "parity": str(max_parity)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Adjusted DX horizontal placement to x0 + 16
           page.insert_text(
               fitz.Point(top_zone.x0 + 16, top_zone.y1 - 85),
               "DX",
@@ -73,7 +78,7 @@ def process_sow_cards_bytes(pdf_bytes):
       if card_updated:
         updated_count += 1
 
-    # --- PROCESS BOTTOM CARD ---
+    # --- PROCESS BOTTOM CARD (FRONT) ---
     bottom_text = page.get_text("text", clip=bottom_zone)
     if "ROYAL CRESCENT" in bottom_text or "Parity" in bottom_text:
       (
@@ -83,14 +88,15 @@ def process_sow_cards_bytes(pdf_bytes):
           breed_rects,
           max_parity,
           induce_date_str,
+          sow_id,
       ) = evaluate_sow_card(page, bottom_zone, bottom_text)
 
       card_updated = False
+      bottom_info = {"sow_id": sow_id, "parity": str(max_parity)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Adjusted DX horizontal placement to x0 + 16
           page.insert_text(
               fitz.Point(bottom_zone.x0 + 16, bottom_zone.y1 - 115),
               "DX",
@@ -128,20 +134,75 @@ def process_sow_cards_bytes(pdf_bytes):
       if card_updated:
         updated_count += 1
 
-  output_pdf_bytes = doc.tobytes()
-  doc.close()
+    # Append the modified front page to output doc
+    output_doc.insert_pdf(input_doc, from_page=page_num, to_page=page_num)
+
+    # --- GENERATE MATCHING BACK PAGE ---
+    back_page = output_doc.new_page(
+        width=page_rect.width, height=page_rect.height
+    )
+    draw_back_page_template(back_page, top_zone, top_info, bottom_zone, bottom_info)
+
+  output_pdf_bytes = output_doc.tobytes()
+  output_doc.close()
+  input_doc.close()
   return output_pdf_bytes, updated_count
+
+
+def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
+  """Draws back-card elements and stamps ID/parity into top-right boxes."""
+  # We draw templates for top and bottom card slots matching the physical back template layout
+  for zone, info in [(top_zone, top_info), (bottom_zone, bottom_info)]:
+    if not info:
+      continue
+
+    sow_id = info["sow_id"]
+    parity = info["parity"]
+
+    # Coordinates for the top-right corner box area based on your back template layout
+    # SOW ID box roughly near top right of each card zone
+    id_point = fitz.Point(zone.x1 - 75, zone.y0 + 15)
+    parity_point = fitz.Point(zone.x1 - 35, zone.y0 + 15)
+
+    # Stamp Sow ID
+    if sow_id:
+      page.insert_text(
+          id_point,
+          sow_id,
+          fontsize=12,
+          color=(0, 0, 0),
+      )
+
+    # Stamp Parity number
+    if parity:
+      page.insert_text(
+          parity_point,
+          parity,
+          fontsize=12,
+          color=(0, 0, 0),
+      )
 
 
 def evaluate_sow_card(page, zone, full_text):
   words = page.get_text("words", clip=zone)
 
   max_parity = 0
+  sow_id = ""
   stillborn_records = []
   parity_headers = []
   flag_tokens = []
   service_flag_tokens = []
   average_x = float("inf")
+
+  # Extract Sow ID from header text (e.g., "TANDA FARMS: 803")
+  if "TANDA FARMS:" in full_text:
+    try:
+      parts = full_text.split("TANDA FARMS:")
+      id_candidate = parts[1].strip().split()[0].replace(";", "")
+      if id_candidate.isdigit() or id_candidate.isalnum():
+        sow_id = id_candidate
+    except Exception:
+      pass
 
   for i, w in enumerate(words):
     text = w[4].strip()
@@ -341,6 +402,7 @@ def evaluate_sow_card(page, zone, full_text):
       breed_rects,
       max_parity,
       induce_date_str,
+      sow_id,
   )
 
 
@@ -371,7 +433,7 @@ if uploaded_file is not None:
   st.json(file_details)
 
   if st.button("Process Cards"):
-    with st.spinner("Processing sow cards and applying rules..."):
+    with st.spinner("Processing sow cards and interleaving back pages..."):
       pdf_bytes = uploaded_file.read()
       processed_bytes, count = process_sow_cards_bytes(pdf_bytes)
 
@@ -382,6 +444,6 @@ if uploaded_file is not None:
       st.download_button(
           label="📥 Download Processed PDF",
           data=processed_bytes,
-          file_name=f"marked_{uploaded_file.name}",
+          file_name=f"duplex_{uploaded_file.name}",
           mime="application/pdf",
       )
