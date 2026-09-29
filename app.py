@@ -35,23 +35,22 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Moved further right (x0 + 28) and used bold font ("helvb") for thick marker look
+          # Moved further right (x0 + 28) using safe font name "Helvetica-Bold"
           page.insert_text(
               fitz.Point(top_zone.x0 + 28, top_zone.y1 - 85),
               "DX",
               fontsize=22,
-              fontname="helvb",
+              fontname="Helvetica-Bold",
               color=(1, 0, 0),
               rotate=270,
           )
 
         if should_induce and induce_date_str:
-          # Larger font size (22) and bold font ("helvb") for marker style
           page.insert_text(
               fitz.Point(top_zone.x1 - 120, top_zone.y0 + 95),
               induce_date_str,
               fontsize=22,
-              fontname="helvb",
+              fontname="Helvetica-Bold",
               color=(1, 0, 0),
           )
 
@@ -93,23 +92,21 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Moved further right (x0 + 28) and used bold font ("helvb") for thick marker look
           page.insert_text(
               fitz.Point(bottom_zone.x0 + 28, bottom_zone.y1 - 115),
               "DX",
               fontsize=22,
-              fontname="helvb",
+              fontname="Helvetica-Bold",
               color=(1, 0, 0),
               rotate=270,
           )
 
         if should_induce and induce_date_str:
-          # Larger font size (22) and bold font ("helvb") for marker style
           page.insert_text(
               fitz.Point(bottom_zone.x1 - 120, bottom_zone.y0 + 50),
               induce_date_str,
               fontsize=22,
-              fontname="helvb",
+              fontname="Helvetica-Bold",
               color=(1, 0, 0),
           )
 
@@ -368,7 +365,7 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-  st.success("File uploaded successful!")
+  st.success("File uploaded successfully!")
 
   file_details = {
       "FileName": uploaded_file.name,
