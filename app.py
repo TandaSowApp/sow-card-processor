@@ -36,7 +36,6 @@ def process_sow_cards_bytes(pdf_bytes):
       ) = evaluate_sow_card(page, top_zone, top_text)
 
       card_updated = False
-      # Parity adjusted to max_parity + 1
       top_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
@@ -93,7 +92,6 @@ def process_sow_cards_bytes(pdf_bytes):
       ) = evaluate_sow_card(page, bottom_zone, bottom_text)
 
       card_updated = False
-      # Parity adjusted to max_parity + 1
       bottom_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
@@ -160,7 +158,6 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     sow_id = info["sow_id"]
     parity = info["parity"]
 
-    # Lowered vertical coordinate from y0 + 12 to y0 + 20 to sit properly in the box
     id_point = fitz.Point(zone.x0 + 55, zone.y0 + 20)
     parity_point = fitz.Point(zone.x0 + 150, zone.y0 + 20)
 
@@ -194,13 +191,20 @@ def evaluate_sow_card(page, zone, full_text):
   service_flag_tokens = []
   average_x = float("inf")
 
-  # Extract Sow ID from header text (e.g., "TANDA FARMS: 3068")
-  if "TANDA FARMS:" in full_text:
+  # Extract Sow ID flexibly handling colons or semicolons after TANDA FARMS
+  if "TANDA FARMS" in full_text:
     try:
-      parts = full_text.split("TANDA FARMS:")
-      id_candidate = parts[1].strip().split()[0].replace(",", "").replace(";", "")
-      if id_candidate.isdigit() or id_candidate.isalnum():
-        sow_id = id_candidate
+      parts = (
+          full_text.replace("TANDA FARMS:", "TANDA FARMS")
+          .replace("TANDA FARMS;", "TANDA FARMS")
+          .split("TANDA FARMS")
+      )
+      if len(parts) > 1:
+        id_candidate = (
+            parts[1].strip().split()[0].replace(",", "").replace(";", "")
+        )
+        if id_candidate.isdigit() or id_candidate.isalnum():
+          sow_id = id_candidate
     except Exception:
       pass
 
