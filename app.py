@@ -35,24 +35,34 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Moved further right (x0 + 28) using safe font name "Helvetica-Bold"
-          page.insert_text(
-              fitz.Point(top_zone.x0 + 28, top_zone.y1 - 85),
-              "DX",
-              fontsize=22,
-              fontname="Helvetica-Bold",
-              color=(1, 0, 0),
-              rotate=270,
-          )
+          # Shifted slightly left to x0 + 16, multi-strike for a thick marker look
+          dx_point = fitz.Point(top_zone.x0 + 16, top_zone.y1 - 85)
+          for dx_offset_x in [-0.5, 0, 0.5]:
+            for dx_offset_y in [-0.5, 0, 0.5]:
+              page.insert_text(
+                  fitz.Point(dx_point.x + dx_offset_x, dx_point.y + dx_offset_y),
+                  "DX",
+                  fontsize=20,
+                  fontname="Helvetica-Bold",
+                  color=(0.9, 0.1, 0.1),
+                  rotate=270,
+              )
 
         if should_induce and induce_date_str:
-          page.insert_text(
-              fitz.Point(top_zone.x1 - 120, top_zone.y0 + 95),
-              induce_date_str,
-              fontsize=22,
-              fontname="Helvetica-Bold",
-              color=(1, 0, 0),
-          )
+          # Multi-strike for a thick red marker look on the induce date
+          induce_point = fitz.Point(top_zone.x1 - 120, top_zone.y0 + 95)
+          for ind_offset_x in [-0.6, 0, 0.6]:
+            for ind_offset_y in [-0.6, 0, 0.6]:
+              page.insert_text(
+                  fitz.Point(
+                      induce_point.x + ind_offset_x,
+                      induce_point.y + ind_offset_y,
+                  ),
+                  induce_date_str,
+                  fontsize=20,
+                  fontname="Helvetica-Bold",
+                  color=(0.9, 0.1, 0.1),
+              )
 
         for rect in stillborn_rects:
           highlight = page.add_highlight_annot(rect)
@@ -92,23 +102,34 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          page.insert_text(
-              fitz.Point(bottom_zone.x0 + 28, bottom_zone.y1 - 115),
-              "DX",
-              fontsize=22,
-              fontname="Helvetica-Bold",
-              color=(1, 0, 0),
-              rotate=270,
-          )
+          # Shifted slightly left to x0 + 16, multi-strike for a thick marker look
+          dx_point = fitz.Point(bottom_zone.x0 + 16, bottom_zone.y1 - 115)
+          for dx_offset_x in [-0.5, 0, 0.5]:
+            for dx_offset_y in [-0.5, 0, 0.5]:
+              page.insert_text(
+                  fitz.Point(dx_point.x + dx_offset_x, dx_point.y + dx_offset_y),
+                  "DX",
+                  fontsize=20,
+                  fontname="Helvetica-Bold",
+                  color=(0.9, 0.1, 0.1),
+                  rotate=270,
+              )
 
         if should_induce and induce_date_str:
-          page.insert_text(
-              fitz.Point(bottom_zone.x1 - 120, bottom_zone.y0 + 50),
-              induce_date_str,
-              fontsize=22,
-              fontname="Helvetica-Bold",
-              color=(1, 0, 0),
-          )
+          # Multi-strike for a thick red marker look on the induce date
+          induce_point = fitz.Point(bottom_zone.x1 - 120, bottom_zone.y0 + 50)
+          for ind_offset_x in [-0.6, 0, 0.6]:
+            for ind_offset_y in [-0.6, 0, 0.6]:
+              page.insert_text(
+                  fitz.Point(
+                      induce_point.x + ind_offset_x,
+                      induce_point.y + ind_offset_y,
+                  ),
+                  induce_date_str,
+                  fontsize=20,
+                  fontname="Helvetica-Bold",
+                  color=(0.9, 0.1, 0.1),
+              )
 
         for rect in stillborn_rects:
           highlight = page.add_highlight_annot(rect)
