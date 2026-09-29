@@ -33,10 +33,16 @@ def process_sow_cards_bytes(pdf_bytes):
           max_parity,
           induce_date_str,
           sow_id,
+          service_flags_list,
       ) = evaluate_sow_card(page, top_zone, top_text)
 
       card_updated = False
-      top_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
+      top_info = {
+          "sow_id": sow_id,
+          "parity": str(max_parity + 1),
+          "breed_rects": breed_rects,
+          "service_flags": service_flags_list,
+      }
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
@@ -89,10 +95,16 @@ def process_sow_cards_bytes(pdf_bytes):
           max_parity,
           induce_date_str,
           sow_id,
+          service_flags_list,
       ) = evaluate_sow_card(page, bottom_zone, bottom_text)
 
       card_updated = False
-      bottom_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
+      bottom_info = {
+          "sow_id": sow_id,
+          "parity": str(max_parity + 1),
+          "breed_rects": breed_rects,
+          "service_flags": service_flags_list,
+      }
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
@@ -150,15 +162,35 @@ def process_sow_cards_bytes(pdf_bytes):
 
 
 def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
-  """Stamps ID and parity into the top boxes with finely tuned position and font."""
+  """Stamps ID and parity into the top boxes with fine-tuned positioning, color, and notes flag."""
   for zone, info in [(top_zone, top_info), (bottom_zone, bottom_info)]:
     if not info:
       continue
 
     sow_id = info["sow_id"]
     parity = info["parity"]
+    breed_rects = info.get("breed_rects", [])
+    service_flags = info.get("service_flags", [])
 
-    # Fine-tuned: dropped down slightly (y0 + 44), ID moved left (x0 + 58), Parity moved right (x0 + 178)
+    # Determine parity font color: Red if >= 6, else Black
+    try:
+      parity_num = int(parity)
+    except ValueError:
+      parity_num = 0
+    parity_color = (1, 0, 0) if parity_num >= 6 else (0, 0, 0)
+
+    # Determine ID/Parity color based on whether there's a service/breed flag
+    id_color = (0, 0, 0)
+    highlight_color = None
+    if breed_rects:
+      _, b_type = breed_rects[0]
+      if b_type == "kanto":
+        id_color = (0, 0, 1)  # Blue
+        highlight_color = (0, 0, 1)
+      elif b_type == "landrace":
+        id_color = (0, 1, 0)  # Green
+        highlight_color = (0, 1, 0)
+
     id_point = fitz.Point(zone.x0 + 58, zone.y0 + 44)
     parity_point = fitz.Point(zone.x0 + 178, zone.y0 + 44)
 
@@ -168,7 +200,7 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           id_point,
           sow_id,
           fontsize=22,
-          color=(0, 0, 0),
+          color=id_color,
       )
 
     # Stamp Parity number
@@ -177,7 +209,27 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           parity_point,
           parity,
           fontsize=22,
-          color=(0, 0, 0),
+          color=parity_color,
+      )
+
+    # If flagged, add giant asterisk and flag text inside the Notes/Comments box
+    if highlight_color and service_flags:
+      flag_text = service_flags[0].upper()
+      # Notes/Comments box location area on the back template
+      star_point = fitz.Point(zone.x0 + 360, zone.y0 + 75)
+      text_point = fitz.Point(zone.x0 + 395, zone.y0 + 75)
+
+      page.insert_text(
+          star_point,
+          "*",
+          fontsize=54,
+          color=highlight_color,
+      )
+      page.insert_text(
+          text_point,
+          flag_text,
+          fontsize=20,
+          color=highlight_color,
       )
 
 
@@ -190,6 +242,7 @@ def evaluate_sow_card(page, zone, full_text):
   parity_headers = []
   flag_tokens = []
   service_flag_tokens = []
+  service_flags_list = []
   average_x = float("inf")
 
   # Extract Sow ID flexibly handling colons or semicolons after TANDA FARMS
@@ -341,6 +394,7 @@ def evaluate_sow_card(page, zone, full_text):
         if left_bound <= fx < right_bound:
           val_str = ow[4].strip().lower()
           latest_service_flags += f" {val_str}"
+          service_flags_list.append(val_str)
           if "kanto" in val_str or "meishan" in val_str:
             r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
             breed_rects.append((r, "kanto"))
@@ -408,6 +462,7 @@ def evaluate_sow_card(page, zone, full_text):
       max_parity,
       induce_date_str,
       sow_id,
+      service_flags_list,
   )
 
 
