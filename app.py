@@ -219,15 +219,15 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           color=parity_color,
       )
 
-    # Draw thick red box extended wider left and right to encapsulate both ID and Parity for Parity 8+
+    # Draw thick red box shifted left and narrower vertically for Parity 8+
     if is_high_parity_8:
-      box_rect = fitz.Rect(zone.x0 + 32, zone.y0 + 16, zone.x0 + 225, zone.y0 + 54)
+      box_rect = fitz.Rect(zone.x0 + 26, zone.y0 + 20, zone.x0 + 215, zone.y0 + 50)
       page.draw_rect(box_rect, color=(1, 0, 0), width=4.5)
 
-    # If flagged, add giant asterisk (shifted down and right) and flag text
+    # If flagged, add giant asterisk (shifted further left and slightly lower) and flag text
     if highlight_color and service_flags:
       flag_text = service_flags[0].upper()
-      star_point = fitz.Point(zone.x0 + 290, zone.y0 + 85)
+      star_point = fitz.Point(zone.x0 + 265, zone.y0 + 92)
       text_point = fitz.Point(zone.x0 + 275, zone.y0 + 75)
 
       page.insert_text(
