@@ -36,7 +36,8 @@ def process_sow_cards_bytes(pdf_bytes):
       ) = evaluate_sow_card(page, top_zone, top_text)
 
       card_updated = False
-      top_info = {"sow_id": sow_id, "parity": str(max_parity)}
+      # Parity adjusted to max_parity + 1
+      top_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
@@ -92,7 +93,8 @@ def process_sow_cards_bytes(pdf_bytes):
       ) = evaluate_sow_card(page, bottom_zone, bottom_text)
 
       card_updated = False
-      bottom_info = {"sow_id": sow_id, "parity": str(max_parity)}
+      # Parity adjusted to max_parity + 1
+      bottom_info = {"sow_id": sow_id, "parity": str(max_parity + 1)}
 
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
@@ -158,9 +160,9 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     sow_id = info["sow_id"]
     parity = info["parity"]
 
-    # Coordinates adjusted for the top-left boxes in each card zone
-    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 12)
-    parity_point = fitz.Point(zone.x0 + 150, zone.y0 + 12)
+    # Lowered vertical coordinate from y0 + 12 to y0 + 20 to sit properly in the box
+    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 20)
+    parity_point = fitz.Point(zone.x0 + 150, zone.y0 + 20)
 
     # Stamp Sow ID
     if sow_id:
@@ -192,11 +194,11 @@ def evaluate_sow_card(page, zone, full_text):
   service_flag_tokens = []
   average_x = float("inf")
 
-  # Extract Sow ID from header text (e.g., "TANDA FARMS: 803")
+  # Extract Sow ID from header text (e.g., "TANDA FARMS: 3068")
   if "TANDA FARMS:" in full_text:
     try:
       parts = full_text.split("TANDA FARMS:")
-      id_candidate = parts[1].strip().split()[0].replace(";", "")
+      id_candidate = parts[1].strip().split()[0].replace(",", "").replace(";", "")
       if id_candidate.isdigit() or id_candidate.isalnum():
         sow_id = id_candidate
     except Exception:
