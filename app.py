@@ -296,7 +296,8 @@ def evaluate_sow_card(page, zone, full_text):
           except ValueError:
             pass
 
-    if "Parity" in text:
+    # Strictly target parity headers across the top block
+    if text == "Parity":
       row_y = w[1]
       for ow in words:
         if (
@@ -335,11 +336,19 @@ def evaluate_sow_card(page, zone, full_text):
             x_center = (ow[0] + ow[2]) / 2
             flag_tokens.append((x_center, ow[4].strip().lower()))
 
-  if max_parity == 0:
-    max_parity = 3
-
   parity_headers.sort(key=lambda x: x[1])
   stillborn_records.sort(key=lambda x: x[0])
+
+  # Fallback if header scanning missed single-parity (Parity 0) layout positions
+  if not parity_headers:
+    max_parity = 0
+    # Estimate standard column position for parity 0 based on text layout
+    for w in words:
+      if w[4].strip() == "0" and w[1] < zone.y0 + 100:
+        parity_headers.append((0, (w[0] + w[2]) / 2))
+        break
+    if not parity_headers:
+      parity_headers.append((0, 315))
 
   valid_stillborns = []
   for sx, val, ow in stillborn_records:
@@ -389,12 +398,12 @@ def evaluate_sow_card(page, zone, full_text):
       left_bound = (
           (parity_headers[idx - 1][1] + target_header_x) / 2
           if idx > 0
-          else target_header_x - 30
+          else target_header_x - 60
       )
       right_bound = (
           (target_header_x + parity_headers[idx + 1][1]) / 2
           if idx < len(parity_headers) - 1
-          else target_header_x + 50
+          else target_header_x + 80
       )
 
       for fx, ftext in flag_tokens:
