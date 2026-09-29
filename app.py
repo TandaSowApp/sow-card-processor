@@ -150,7 +150,7 @@ def process_sow_cards_bytes(pdf_bytes):
 
 
 def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
-  """Stamps ID and parity into the top-left boxes of the back template."""
+  """Stamps ID and parity into the top boxes with larger font and adjusted position."""
   for zone, info in [(top_zone, top_info), (bottom_zone, bottom_info)]:
     if not info:
       continue
@@ -158,15 +158,16 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     sow_id = info["sow_id"]
     parity = info["parity"]
 
-    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 20)
-    parity_point = fitz.Point(zone.x0 + 150, zone.y0 + 20)
+    # Lowered vertically (y0 + 30) and moved parity further right (x0 + 190) with larger font (16pt)
+    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 30)
+    parity_point = fitz.Point(zone.x0 + 190, zone.y0 + 30)
 
     # Stamp Sow ID
     if sow_id:
       page.insert_text(
           id_point,
           sow_id,
-          fontsize=11,
+          fontsize=16,
           color=(0, 0, 0),
       )
 
@@ -175,7 +176,7 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
       page.insert_text(
           parity_point,
           parity,
-          fontsize=11,
+          fontsize=16,
           color=(0, 0, 0),
       )
 
