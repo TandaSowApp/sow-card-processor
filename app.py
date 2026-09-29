@@ -219,21 +219,21 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           color=parity_color,
       )
 
-    # Draw large red box around Sow ID and Parity box for Parity 8+
+    # Draw thick red box tightly encapsulating the Sow ID box for Parity 8+
     if is_high_parity_8:
-      box_rect = fitz.Rect(zone.x0 + 35, zone.y0 + 10, zone.x0 + 225, zone.y0 + 58)
-      page.draw_rect(box_rect, color=(1, 0, 0), width=2.5)
+      box_rect = fitz.Rect(zone.x0 + 48, zone.y0 + 18, zone.x0 + 138, zone.y0 + 52)
+      page.draw_rect(box_rect, color=(1, 0, 0), width=4.5)
 
-    # If flagged, add giant asterisk (shifted left) and flag text inside Notes/Comments box
+    # If flagged, add giant asterisk (shifted further left, bigger) and flag text
     if highlight_color and service_flags:
       flag_text = service_flags[0].upper()
-      star_point = fitz.Point(zone.x0 + 310, zone.y0 + 75)
-      text_point = fitz.Point(zone.x0 + 345, zone.y0 + 75)
+      star_point = fitz.Point(zone.x0 + 240, zone.y0 + 75)
+      text_point = fitz.Point(zone.x0 + 275, zone.y0 + 75)
 
       page.insert_text(
           star_point,
           "*",
-          fontsize=54,
+          fontsize=80,
           color=highlight_color,
       )
       page.insert_text(
