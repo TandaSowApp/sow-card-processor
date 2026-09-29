@@ -219,9 +219,9 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           color=parity_color,
       )
 
-    # Draw thick red box extended further left and narrower vertically for Parity 8+
+    # Draw thick red box adjusted to x=49 on left and brought in on right for Parity 8+
     if is_high_parity_8:
-      box_rect = fitz.Rect(zone.x0 + 10, zone.y0 + 20, zone.x0 + 215, zone.y0 + 50)
+      box_rect = fitz.Rect(zone.x0 + 49, zone.y0 + 20, zone.x0 + 205, zone.y0 + 50)
       page.draw_rect(box_rect, color=(1, 0, 0), width=4.5)
 
     # If flagged, add giant asterisk and flag text
