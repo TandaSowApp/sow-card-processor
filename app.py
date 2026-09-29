@@ -158,16 +158,16 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     sow_id = info["sow_id"]
     parity = info["parity"]
 
-    # Lowered vertically (y0 + 30) and moved parity further right (x0 + 190) with larger font (16pt)
-    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 30)
-    parity_point = fitz.Point(zone.x0 + 190, zone.y0 + 30)
+    # Lowered further vertically (y0 + 36), ID moved right (x0 + 75), Parity moved left (x0 + 175), font increased to 20pt
+    id_point = fitz.Point(zone.x0 + 75, zone.y0 + 36)
+    parity_point = fitz.Point(zone.x0 + 175, zone.y0 + 36)
 
     # Stamp Sow ID
     if sow_id:
       page.insert_text(
           id_point,
           sow_id,
-          fontsize=16,
+          fontsize=20,
           color=(0, 0, 0),
       )
 
@@ -176,7 +176,7 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
       page.insert_text(
           parity_point,
           parity,
-          fontsize=16,
+          fontsize=20,
           color=(0, 0, 0),
       )
 
