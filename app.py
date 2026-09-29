@@ -35,9 +35,9 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Moved DX further right from x0 + 10 to x0 + 32
+          # Adjusted DX horizontal placement to x0 + 16
           page.insert_text(
-              fitz.Point(top_zone.x0 + 32, top_zone.y1 - 85),
+              fitz.Point(top_zone.x0 + 16, top_zone.y1 - 85),
               "DX",
               fontsize=20,
               color=(1, 0, 0),
@@ -45,7 +45,6 @@ def process_sow_cards_bytes(pdf_bytes):
           )
 
         if should_induce and induce_date_str:
-          # Increased induce font size from 14 to 20
           page.insert_text(
               fitz.Point(top_zone.x1 - 110, top_zone.y0 + 90),
               induce_date_str,
@@ -91,9 +90,9 @@ def process_sow_cards_bytes(pdf_bytes):
       # 1. High-parity check for DX and Stillborns (Parity >= 3)
       if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
-          # Moved DX further right from x0 + 10 to x0 + 32
+          # Adjusted DX horizontal placement to x0 + 16
           page.insert_text(
-              fitz.Point(bottom_zone.x0 + 32, bottom_zone.y1 - 115),
+              fitz.Point(bottom_zone.x0 + 16, bottom_zone.y1 - 115),
               "DX",
               fontsize=20,
               color=(1, 0, 0),
@@ -101,7 +100,6 @@ def process_sow_cards_bytes(pdf_bytes):
           )
 
         if should_induce and induce_date_str:
-          # Increased induce font size from 14 to 20
           page.insert_text(
               fitz.Point(bottom_zone.x1 - 110, bottom_zone.y0 + 45),
               induce_date_str,
