@@ -150,8 +150,7 @@ def process_sow_cards_bytes(pdf_bytes):
 
 
 def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
-  """Draws back-card elements and stamps ID/parity into top-right boxes."""
-  # We draw templates for top and bottom card slots matching the physical back template layout
+  """Stamps ID and parity into the top-left boxes of the back template."""
   for zone, info in [(top_zone, top_info), (bottom_zone, bottom_info)]:
     if not info:
       continue
@@ -159,17 +158,16 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     sow_id = info["sow_id"]
     parity = info["parity"]
 
-    # Coordinates for the top-right corner box area based on your back template layout
-    # SOW ID box roughly near top right of each card zone
-    id_point = fitz.Point(zone.x1 - 75, zone.y0 + 15)
-    parity_point = fitz.Point(zone.x1 - 35, zone.y0 + 15)
+    # Coordinates adjusted for the top-left boxes in each card zone
+    id_point = fitz.Point(zone.x0 + 55, zone.y0 + 12)
+    parity_point = fitz.Point(zone.x0 + 150, zone.y0 + 12)
 
     # Stamp Sow ID
     if sow_id:
       page.insert_text(
           id_point,
           sow_id,
-          fontsize=12,
+          fontsize=11,
           color=(0, 0, 0),
       )
 
@@ -178,7 +176,7 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
       page.insert_text(
           parity_point,
           parity,
-          fontsize=12,
+          fontsize=11,
           color=(0, 0, 0),
       )
 
