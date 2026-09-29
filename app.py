@@ -172,14 +172,17 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
     breed_rects = info.get("breed_rects", [])
     service_flags = info.get("service_flags", [])
 
-    # Determine parity font color: Red if >= 6, else Black
     try:
       parity_num = int(parity)
     except ValueError:
       parity_num = 0
-    parity_color = (1, 0, 0) if parity_num >= 6 else (0, 0, 0)
 
-    # Determine ID/Parity color based on whether there's a service/breed flag
+    is_high_parity_6 = parity_num >= 6
+    is_high_parity_8 = parity_num >= 8
+
+    parity_color = (1, 0, 0) if is_high_parity_6 else (0, 0, 0)
+
+    # Determine ID color: Service flag color takes priority over red
     id_color = (0, 0, 0)
     highlight_color = None
     if breed_rects:
@@ -190,6 +193,10 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
       elif b_type == "landrace":
         id_color = (0, 1, 0)  # Green
         highlight_color = (0, 1, 0)
+
+    # If no service flag color, fallback to red if parity >= 6
+    if not highlight_color and is_high_parity_6:
+      id_color = (1, 0, 0)
 
     id_point = fitz.Point(zone.x0 + 58, zone.y0 + 44)
     parity_point = fitz.Point(zone.x0 + 178, zone.y0 + 44)
@@ -212,12 +219,16 @@ def draw_back_page_template(page, top_zone, top_info, bottom_zone, bottom_info):
           color=parity_color,
       )
 
-    # If flagged, add giant asterisk and flag text inside the Notes/Comments box
+    # Draw large red box around Sow ID and Parity box for Parity 8+
+    if is_high_parity_8:
+      box_rect = fitz.Rect(zone.x0 + 35, zone.y0 + 10, zone.x0 + 225, zone.y0 + 58)
+      page.draw_rect(box_rect, color=(1, 0, 0), width=2.5)
+
+    # If flagged, add giant asterisk (shifted left) and flag text inside Notes/Comments box
     if highlight_color and service_flags:
       flag_text = service_flags[0].upper()
-      # Notes/Comments box location area on the back template
-      star_point = fitz.Point(zone.x0 + 360, zone.y0 + 75)
-      text_point = fitz.Point(zone.x0 + 395, zone.y0 + 75)
+      star_point = fitz.Point(zone.x0 + 310, zone.y0 + 75)
+      text_point = fitz.Point(zone.x0 + 345, zone.y0 + 75)
 
       page.insert_text(
           star_point,
