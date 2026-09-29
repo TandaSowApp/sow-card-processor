@@ -30,7 +30,10 @@ def process_sow_cards_bytes(pdf_bytes):
           induce_date_str,
       ) = evaluate_sow_card(page, top_zone, top_text)
 
-      if max_parity >= 3 and (should_dx or stillborn_rects or breed_rects):
+      card_updated = False
+
+      # 1. High-parity check for DX and Stillborns (Parity >= 3)
+      if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
           page.insert_text(
               fitz.Point(top_zone.x0 + 10, top_zone.y1 - 85),
@@ -53,6 +56,10 @@ def process_sow_cards_bytes(pdf_bytes):
           highlight.set_colors(stroke=(1, 1, 0))  # Yellow
           highlight.update()
 
+        card_updated = True
+
+      # 2. Breed/Service flag check runs for the LATEST parity regardless of max_parity
+      if breed_rects:
         for rect, b_type in breed_rects:
           highlight = page.add_highlight_annot(rect)
           if b_type == "kanto":
@@ -60,7 +67,9 @@ def process_sow_cards_bytes(pdf_bytes):
           elif b_type == "landrace":
             highlight.set_colors(stroke=(0, 1, 0))  # Green
           highlight.update()
+        card_updated = True
 
+      if card_updated:
         updated_count += 1
 
     # --- PROCESS BOTTOM CARD ---
@@ -75,7 +84,10 @@ def process_sow_cards_bytes(pdf_bytes):
           induce_date_str,
       ) = evaluate_sow_card(page, bottom_zone, bottom_text)
 
-      if max_parity >= 3 and (should_dx or stillborn_rects or breed_rects):
+      card_updated = False
+
+      # 1. High-parity check for DX and Stillborns (Parity >= 3)
+      if max_parity >= 3 and (should_dx or stillborn_rects):
         if should_dx:
           page.insert_text(
               fitz.Point(bottom_zone.x0 + 10, bottom_zone.y1 - 115),
@@ -98,6 +110,10 @@ def process_sow_cards_bytes(pdf_bytes):
           highlight.set_colors(stroke=(1, 1, 0))  # Yellow
           highlight.update()
 
+        card_updated = True
+
+      # 2. Breed/Service flag check runs for the LATEST parity regardless of max_parity
+      if breed_rects:
         for rect, b_type in breed_rects:
           highlight = page.add_highlight_annot(rect)
           if b_type == "kanto":
@@ -105,7 +121,9 @@ def process_sow_cards_bytes(pdf_bytes):
           elif b_type == "landrace":
             highlight.set_colors(stroke=(0, 1, 0))  # Green
           highlight.update()
+        card_updated = True
 
+      if card_updated:
         updated_count += 1
 
   output_pdf_bytes = doc.tobytes()
@@ -251,11 +269,12 @@ def evaluate_sow_card(page, zone, full_text):
         if left_bound <= fx < right_bound:
           latest_parity_flags += f" {ftext}"
 
+      # Only check service flags falling within the LATEST parity column bounds
       for fx, ow in service_flag_tokens:
         if left_bound <= fx < right_bound:
           val_str = ow[4].strip().lower()
           latest_service_flags += f" {val_str}"
-          if "kanto" in val_str:
+          if "kanto" in val_str or "meishan" in val_str:
             r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
             breed_rects.append((r, "kanto"))
           elif "landrace" in val_str:
@@ -352,17 +371,13 @@ if uploaded_file is not None:
 
   if st.button("Process Cards"):
     with st.spinner("Processing sow cards and applying rules..."):
-      # Read file bytes directly from uploaded object
       pdf_bytes = uploaded_file.read()
-
-      # Run processing function
       processed_bytes, count = process_sow_cards_bytes(pdf_bytes)
 
       st.success(
-          f"Processing complete! Flagged {count} qualifying high-risk sows."
+          f"Processing complete! Flagged {count} qualifying card sections."
       )
 
-      # Provide download link for the marked PDF
       st.download_button(
           label="📥 Download Processed PDF",
           data=processed_bytes,
