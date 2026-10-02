@@ -24,7 +24,7 @@ def process_sow_cards_bytes(pdf_bytes):
 
     # --- PROCESS TOP CARD (FRONT) ---
     top_text = page.get_text("text", clip=top_zone)
-    if "ROYAL CRESCENT" in top_text or "Parity" in top_text:
+    if "ROYAL CRESCENT" in top_text or "TANDA FARMS" in top_text or "STREICHER" in top_text or "Parity" in top_text:
       (
           should_dx,
           should_induce,
@@ -86,7 +86,7 @@ def process_sow_cards_bytes(pdf_bytes):
 
     # --- PROCESS BOTTOM CARD (FRONT) ---
     bottom_text = page.get_text("text", clip=bottom_zone)
-    if "ROYAL CRESCENT" in bottom_text or "Parity" in bottom_text:
+    if "ROYAL CRESCENT" in bottom_text or "TANDA FARMS" in bottom_text or "STREICHER" in bottom_text or "Parity" in bottom_text:
       (
           should_dx,
           should_induce,
@@ -256,22 +256,25 @@ def evaluate_sow_card(page, zone, full_text):
   service_flags_list = []
   average_x = float("inf")
 
-  # Extract Sow ID flexibly handling colons or semicolons after TANDA FARMS
-  if "TANDA FARMS" in full_text:
-    try:
-      parts = (
-          full_text.replace("TANDA FARMS:", "TANDA FARMS")
-          .replace("TANDA FARMS;", "TANDA FARMS")
-          .split("TANDA FARMS")
-      )
-      if len(parts) > 1:
-        id_candidate = (
-            parts[1].strip().split()[0].replace(",", "").replace(";", "")
+  # Extract Sow ID flexibly handling colons, semicolons, or commas after prefix
+  for prefix in ["TANDA FARMS", "ROYAL CRESCENT", "STREICHER"]:
+    if prefix in full_text:
+      try:
+        parts = (
+            full_text.replace(f"{prefix}:", prefix)
+            .replace(f"{prefix};", prefix)
+            .replace(f"{prefix},", prefix)
+            .split(prefix)
         )
-        if id_candidate.isdigit() or id_candidate.isalnum():
-          sow_id = id_candidate
-    except Exception:
-      pass
+        if len(parts) > 1:
+          id_candidate = (
+              parts[1].strip().split()[0].replace(",", "").replace(";", "")
+          )
+          if id_candidate.isdigit() or id_candidate.isalnum():
+            sow_id = id_candidate
+            break
+      except Exception:
+        pass
 
   for i, w in enumerate(words):
     text = w[4].strip()
@@ -342,7 +345,6 @@ def evaluate_sow_card(page, zone, full_text):
   # Fallback if header scanning missed single-parity (Parity 0) layout positions
   if not parity_headers:
     max_parity = 0
-    # Estimate standard column position for parity 0 based on text layout
     for w in words:
       if w[4].strip() == "0" and w[1] < zone.y0 + 100:
         parity_headers.append((0, (w[0] + w[2]) / 2))
