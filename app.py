@@ -370,16 +370,16 @@ def evaluate_sow_card(page, zone, full_text):
     is_high = False
     if val >= 3.0:
       is_high = True
-      r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
-      stillborn_rects.append(r)
-      if p_num == max_parity:
-        has_latest_high_stillborn = True
     elif sx > 450 and val >= 2.0:
       is_high = True
-      r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
-      stillborn_rects.append(r)
 
     if is_high:
+      r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
+      stillborn_rects.append(r)
+      is_latest = (idx == len(valid_stillborns) - 1) or (p_num == max_parity)
+      if is_latest:
+        has_latest_high_stillborn = True
+
       subsequent_vals = [s[1] for s in valid_stillborns if s[0] > sx]
       if not subsequent_vals or any(v >= 2.0 for v in subsequent_vals):
         has_unresolved_high_stillborns = True
@@ -429,16 +429,21 @@ def evaluate_sow_card(page, zone, full_text):
   )
   has_early_service_flag = "early" in latest_service_flags
 
-  should_induce = max_parity >= 4 and (
+  # Check Parity 5+ with most recent stillborn 2+ condition (triggers Induce & DX without highlight)
+  latest_stillborn_val = valid_stillborns[-1][1] if valid_stillborns else 0.0
+  parity_5_stillborn_trigger = max_parity >= 5 and latest_stillborn_val >= 2.0
+
+  should_induce = (max_parity >= 4 and (
       has_recent_combined_flag
       or has_unresolved_high_stillborns
       or has_latest_high_stillborn
-  )
-  should_dx = max_parity >= 3 and (
+  )) or parity_5_stillborn_trigger
+
+  should_dx = (max_parity >= 3 and (
       has_recent_combined_flag
       or has_unresolved_high_stillborns
       or has_latest_high_stillborn
-  )
+  )) or parity_5_stillborn_trigger
 
   induce_date_str = "Sep. 29"
   try:
