@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import fitz  # PyMuPDF
 import streamlit as st
 
-st.set_page_config(page_title="Sow Card Processor", page_icon="🐖")
+st.set_page_config(page_title="Sow Card Processor", page_icon="favicon.ico")
 
 # ==========================================
 # 1. YOUR PROCESSING LOGIC WITH DUPLEX GENERATION
