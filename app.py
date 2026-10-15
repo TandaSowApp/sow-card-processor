@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import fitz  # PyMuPDF
 import streamlit as st
 
+
 # ==========================================
 # 1. YOUR PROCESSING LOGIC WITH DUPLEX GENERATION
 # ==========================================
@@ -387,6 +388,9 @@ def evaluate_sow_card(page, zone, full_text):
   latest_service_flags = ""
   breed_rects = []
 
+  # Track parity history flags and induction outcomes across columns
+  historical_induced_clean_count = 0
+
   if parity_headers:
     idx = -1
     for h_idx, h in enumerate(parity_headers):
@@ -423,12 +427,41 @@ def evaluate_sow_card(page, zone, full_text):
             r = fitz.Rect(ow[0] - 2, ow[1] - 2, ow[2] + 2, ow[3] + 2)
             breed_rects.append((r, "landrace"))
 
+    # Scan past parities specifically for 2+ consecutive 'i' (induce) flags in stable 114-116 window
+    consecutive_i_count = 0
+    for h_idx in range(len(parity_headers) - 1, -1, -1):
+      h_x = parity_headers[h_idx][1]
+      p_lbound = (
+          (parity_headers[h_idx - 1][1] + h_x) / 2
+          if h_idx > 0
+          else h_x - 60
+      )
+      p_rbound = (
+          (h_x + parity_headers[h_idx + 1][1]) / 2
+          if h_idx < len(parity_headers) - 1
+          else h_x + 80
+      )
+
+      # Check if this specific parity column has an 'i' (induce) flag
+      has_i_flag = False
+      for fx, ftext in flag_tokens:
+        if p_lbound <= fx < p_rbound and "i" in ftext.split():
+          has_i_flag = True
+          break
+
+      if has_i_flag:
+        consecutive_i_count += 1
+      else:
+        break
+
+    historical_induced_clean_count = consecutive_i_count
+
   has_recent_combined_flag = (
       "i" in latest_parity_flags and "dx" in latest_parity_flags
   )
   has_early_service_flag = "early" in latest_service_flags
 
-  # Check Parity 5+ with most recent stillborn 2+ condition (triggers Induce & DX without highlight)
+  # Parity 5+ with most recent stillborn 2+ condition (triggers Induce & DX without highlight)
   latest_stillborn_val = valid_stillborns[-1][1] if valid_stillborns else 0.0
   parity_5_stillborn_trigger = max_parity >= 5 and latest_stillborn_val >= 2.0
 
@@ -462,17 +495,33 @@ def evaluate_sow_card(page, zone, full_text):
     if due_date and day115:
       diff_days = (due_date - day115).days
 
-      if diff_days == -2:
-        target_date = day115 - timedelta(hours=60)
-      elif diff_days in [-1, 0, 1]:
-        target_date = day115 - timedelta(days=2)
-      elif diff_days in [2, 3]:
-        target_date = day115 - timedelta(days=1)
+      # Check Inertia Lock: Requires 2+ consecutive induced parities ('i' flag) AND clean recent stillborns
+      is_inertia_locked = (
+          historical_induced_clean_count >= 2
+          and not has_unresolved_high_stillborns
+      )
+
+      if is_inertia_locked:
+        # Hold steady on proven 24h pre-115 schedule (target Day 115 farrowing, stops compounding creep)
+        target_date = day115 - timedelta(hours=24)
       else:
-        target_date = day115
+        # Standard Lookup Table Logic
+        if diff_days == -2:
+          target_date = day115 - timedelta(hours=72)  # Target Day 113 farrow
+        elif diff_days in [-1, 0, 1]:
+          target_date = day115 - timedelta(hours=48)  # Target Day 114 farrow
+        elif diff_days in [2, 3]:
+          target_date = day115 - timedelta(hours=24)  # Target Day 115 farrow
+        else:  # 4, 5, 6
+          target_date = day115
 
       if has_early_service_flag:
         target_date -= timedelta(days=1)
+
+      # ABSOLUTE HARD FLOOR: Earliest injection is 72 hours prior to 115day (Earliest Farrow = Day 113)
+      absolute_floor = day115 - timedelta(hours=72)
+      if target_date < absolute_floor:
+        target_date = absolute_floor
 
       month_str = target_date.strftime("%b")
       day_str = target_date.strftime("%d").lstrip("0")
